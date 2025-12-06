@@ -1,13 +1,19 @@
 package handler
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/mpioski/goshort/internal/service"
+	"html/template"
 	"math/rand"
 	"net/http"
 	"time"
 )
+
+var tpl = template.Must(template.ParseFiles("templates/index.html"))
+
+type TemplateData struct {
+	ShortURL string
+}
 
 const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 const charsetLength = len(charset)
@@ -23,25 +29,24 @@ type ShortenResponse struct {
 }
 
 func Shorten(w http.ResponseWriter, r *http.Request) {
-	var request ShortenRequest
-	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Bad form", http.StatusBadRequest)
 		return
 	}
-	defer r.Body.Close()
-
-	if request.URL == "" {
+	originalURL := r.FormValue("url")
+	if originalURL == "" {
 		http.Error(w, "URL is required", http.StatusBadRequest)
 		return
 	}
+
 	shortCode := generateShortCode(6)
-	service.SetURL(shortCode, request.URL)
-	resp := ShortenResponse{
-		ShortURL: fmt.Sprintf("localhost:8080/%s", shortCode),
+	service.SetURL(shortCode, originalURL)
+
+	data := TemplateData{
+		ShortURL: fmt.Sprintf("http://localhost:8080/%s", shortCode),
 	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
-	json.NewEncoder(w).Encode(resp)
+
+	tpl.ExecuteTemplate(w, "index", data)
 
 }
 

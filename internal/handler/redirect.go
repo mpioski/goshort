@@ -12,7 +12,7 @@ func Redirect(w http.ResponseWriter, r *http.Request) {
 	shortCode := strings.Trim(r.URL.Path, "/")
 
 	if shortCode == "" {
-		http.ServeFile(w, r, "./static/index.html")
+		tpl.ExecuteTemplate(w, "index", nil)
 		return
 	}
 
